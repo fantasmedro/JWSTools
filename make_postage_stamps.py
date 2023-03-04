@@ -11,6 +11,7 @@ This file software allows to create postage stamps of jwst images.
 18 Feb 23:  version 1.0
 '''
 
+
 import os
 import argparse
 import numpy as np
@@ -38,6 +39,12 @@ def postage_stamp(ra, dec, idx=None):
 			frame_ERR  = hdu[2].data
 			header_WHT = hdu[2].data
 			frame_WHT  = hdu[4].data
+
+		if (args.segmap == True):
+			header_clumps = hdu[2].header
+			frame_clumps = hdu[2].data
+			header_objects = hdu[3].header
+			frame_objects = hdu[3].data
 
 		wcs = WCS(header_SCI)
 
@@ -76,6 +83,22 @@ def postage_stamp(ra, dec, idx=None):
 
 			print(hdu_cutout)
 
+		if (args.segmap is True):
+
+			clumps_cutout = Cutout2D(frame_clumps, position, args.xycut, 
+								  mode='strict', wcs=wcs)
+
+			objects_cutout = Cutout2D(frame_objects, position, args.xycut, 
+								  mode='strict', wcs=wcs)
+
+			hdu_clumps = fits.ImageHDU(clumps_cutout.data, name='clumps')
+			hdu_objects = fits.ImageHDU(objects_cutout.data, name='objects')
+
+			hdu_cutout.append(hdu_clumps)
+			hdu_cutout.append(hdu_objects)
+
+			print(hdu_cutout)
+
 		if (os.path.isfile(file_cutout) is False or args.overwrite is True):
 
 			hdu_cutout.writeto(file_cutout, overwrite=True)
@@ -94,6 +117,7 @@ if __name__ == "__main__":
 	parser.add_argument("--coordfile", help='"File with ID, RA, DEC in degree - fk5 (default: None)"', nargs='?', type=str, default=None)
 	parser.add_argument("--xycut", help='"Size of the cutout in px (default: 200)"', nargs='?', type=int, const=200, default=200)
 	parser.add_argument("--addframe", help='"Create ERR and WHT frames additional (default: False)"', nargs='?', type=bool, choices=(True, False), const=False, default=False)
+	parser.add_argument("--segmap", help='"Create CLUMPS and OBJECTS frames additional (default: False)"', nargs='?', type=bool, choices=(True, False), const=False, default=False)
 	parser.add_argument("--overwrite", help='"Overwrite previous results (default: False)"', nargs='?', type=bool, choices=(True, False), const=False, default=False)
 	args = parser.parse_args()
 
@@ -117,4 +141,6 @@ if __name__ == "__main__":
 		dec = args.dec
 
 		postage_stamp(ra, dec)
+
+
 
